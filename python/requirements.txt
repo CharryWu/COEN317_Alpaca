@@ -1,1 +1,5 @@
 ffmpeg-python
+numpy
+opencv-python
+dlib
+imutils
