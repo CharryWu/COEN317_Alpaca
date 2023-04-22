@@ -28,17 +28,8 @@ def draw_points(image):
         for (x, y) in shape:
             cv2.circle(image, (x, y), 2, (0, 255, 0), -1)
 
-    while(True):
-        cv2.imshow('test', image)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    # Destroy all the windows
-    cv2.destroyAllWindows()
-
-def read_image_from_url(url, mode=cv2.IMREAD_GRAYSCALE):
+def read_image_from_url(url, mode=cv2.IMREAD_UNCHANGED):
     return cv2.imread(url, mode)
 
-if __name__ == '__main__':
-    img = read_image_from_url('../samples/charry.jpg')
-    draw_points(img)
+def save_image_to_url(url, image):
+    cv2.imwrite(url, image)
