@@ -1,17 +1,21 @@
 # import the necessary packages
-from imutils import face_utils
 import dlib
 import cv2
+import pathlib
+from imutils import face_utils
+from file_util import get_path
+from time import perf_counter
+from log_util import log, bcolors
 
 # initialize dlib's face detector (HOG-based) and then create
 # the facial landmark predictor
-p = "./models/shape_predictor_68_face_landmarks.dat"
+file_parent = pathlib.Path(__file__).parent.resolve() # path relative to this file, not to cwd
+p = get_path(file_parent, './models/shape_predictor_68_face_landmarks.dat')
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(p)
 
 
 def draw_points(image):
-
     # detect faces in the grayscale image
     rects = detector(image, 0)
 
@@ -33,3 +37,15 @@ def read_image_from_url(url, mode=cv2.IMREAD_UNCHANGED):
 
 def save_image_to_url(url, image):
     cv2.imwrite(url, image)
+
+def draw_points_all(num_frames, work_dir, input_basename, output_basename):
+    log(f'Face detection processing {num_frames} frames in {work_dir}. {input_basename} => {output_basename}', bcolors.OKCYAN)
+    t_start = perf_counter()
+    for frame_num in range(1, num_frames+1):
+        img_url = get_path(work_dir, f'{input_basename}-{frame_num:04d}.png')
+        img = read_image_from_url(img_url)
+        draw_points(img)
+        out_url = get_path(work_dir, f'{output_basename}-{frame_num:04d}.png')
+        save_image_to_url(out_url, img)
+    t_stop = perf_counter()
+    log(f'Face detection complete! {num_frames} frames processed. Duration: {(t_stop-t_start):.2f} seconds.', bcolors.OKCYAN)
