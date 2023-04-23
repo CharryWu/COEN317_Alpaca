@@ -16,6 +16,12 @@ predictor = dlib.shape_predictor(p)
 
 
 def draw_points(image):
+    """
+    Draw delaunay points on a single OpenCV image.
+    Args:
+        - image: OpenCV image in NumPy format
+    Output: None. This method does in-place mutation on the original image.
+    """
     # detect faces in the grayscale image
     rects = detector(image, 0)
 
@@ -39,6 +45,10 @@ def save_image_to_url(url, image):
     cv2.imwrite(url, image)
 
 def draw_points_all(num_frames, work_dir, input_basename, output_basename):
+    """
+    Draw delaunay points on all image frames of input video in samples directory
+    And save as output image frames
+    """
     log(f'Face detection processing {num_frames} frames in {work_dir}. {input_basename} => {output_basename}', bcolors.OKCYAN)
     t_start = perf_counter()
     for frame_num in range(1, num_frames+1):
