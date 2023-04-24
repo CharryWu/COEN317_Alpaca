@@ -12,6 +12,7 @@ def get_frame_rate(video_url: str) -> str:
     return output.split('"')[1]
 
 def get_total_frames(video_url: str) -> int:
+    frame_num = -1
     probe = ffmpeg.probe(video_url)
     video_info = next(s for s in probe['streams']
                       if s['codec_type'] == 'video')
@@ -30,7 +31,9 @@ def get_total_frames(video_url: str) -> int:
                 ['ffmpeg', '-i', video_url, '-map', '0:v:0', '-c', 'copy', '-f', 'null', '-'], stderr=subprocess.STDOUT).decode()
             m = re.findall(r'frame=\s*(\d+)', output)
             if len(m) > 0:
-                frame_num = int(m[0])
+                # If there're multiple streams in vid file, get largest frame_num
+                for str_frame_num in m:
+                    frame_num = max(frame_num, int(str_frame_num))
                 return frame_num
         except Exception as e:
             pass

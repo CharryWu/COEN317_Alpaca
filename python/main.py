@@ -61,10 +61,12 @@ def main(**args):
     Main execution entry point, calls functions from utils files
     """
     args_parsed = process_paths(args)
+    log(str(args_parsed))
     try:
         # Get metadata info of input video: total num of frames and FPS
         num_frames = get_total_frames(args_parsed['input_url'])
         frame_rate = get_frame_rate(args_parsed['input_url'])
+        log(f'input {args_parsed["input_url"]}: frame_rate={frame_rate}, num_frames={num_frames}')
         video2images(args_parsed['input_url'], SAMPLES_DIR, f'{args_parsed["input_basename"]}-%04d.png')
         draw_points_all(num_frames, SAMPLES_DIR, args_parsed['input_basename'], args_parsed['output_basename'])
         images2video(SAMPLES_DIR, f'{args_parsed["output_basename"]}-%04d.png', args_parsed['output_url'], fps=frame_rate)
