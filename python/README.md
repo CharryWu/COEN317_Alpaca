@@ -9,8 +9,11 @@ Ensure you've installed python >= 3.6, install the follwing dependecies (if you'
 
 then run `pip install -r requirements.txt`
 
-## Python Project Run
+## Run as a utility tool on single machine
 `python3 ./python/main.py -i <PATH_TO_INPUT_VIDEO_FILE> -o <PATH_TO_OUTPUT_VIDEO_FILE>`
+
+## Run as a distributed service
+`cd ./python && uvicorn http_master:app --reload`
 
 ## Reference
 https://github.com/italojs/facial-landmarks-recognition
