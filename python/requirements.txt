@@ -5,3 +5,4 @@ dlib
 imutils
 fastapi
 uvicorn[standard]
+python-multipart
