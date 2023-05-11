@@ -1,19 +1,21 @@
 # import the necessary packages
-import dlib
 import cv2
-import pathlib
+import mediapipe as mp
 from imutils import face_utils
 from file_util import get_path
 from time import perf_counter
 from log_util import log, bcolors
 
-# initialize dlib's face detector (HOG-based) and then create
-# the facial landmark predictor
-file_parent = pathlib.Path(__file__).parent.resolve() # path relative to this file, not to cwd
-p = get_path(file_parent, './models/shape_predictor_68_face_landmarks.dat')
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(p)
-
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_face_mesh = mp.solutions.face_mesh
+drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
+face_mesh = mp_face_mesh.FaceMesh(
+    static_image_mode=True,
+    max_num_faces=1,
+    refine_landmarks=True,
+    min_detection_confidence=0.5
+)
 
 def draw_points(image):
     """
@@ -22,21 +24,37 @@ def draw_points(image):
         - image: OpenCV image in NumPy format
     Output: None. This method does in-place mutation on the original image.
     """
-    # detect faces in the grayscale image
-    rects = detector(image, 0)
+    # Convert the BGR image to RGB before processing.
+    results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
-    # loop over the face detections
-    for (i, rect) in enumerate(rects):
-        # determine the facial landmarks for the face region, then
-        # convert the facial landmark (x, y)-coordinates to a NumPy
-        # array
-        shape = predictor(image, rect)
-        shape = face_utils.shape_to_np(shape)
-
-        # loop over the (x, y)-coordinates for the facial landmarks
-        # and draw them on the image
-        for (x, y) in shape:
-            cv2.circle(image, (x, y), 2, (0, 255, 0), -1)
+    # Print and draw face mesh landmarks on the image.
+    if not results.multi_face_landmarks:
+        return None
+    for face_landmarks in results.multi_face_landmarks:
+        mp_drawing.draw_landmarks(
+            image=image,
+            landmark_list=face_landmarks,
+            connections=mp_face_mesh.FACEMESH_TESSELATION,
+            landmark_drawing_spec=None,
+            connection_drawing_spec=mp_drawing_styles
+            .get_default_face_mesh_tesselation_style()
+        )
+        mp_drawing.draw_landmarks(
+            image=image,
+            landmark_list=face_landmarks,
+            connections=mp_face_mesh.FACEMESH_CONTOURS,
+            landmark_drawing_spec=None,
+            connection_drawing_spec=mp_drawing_styles
+            .get_default_face_mesh_contours_style()
+        )
+        mp_drawing.draw_landmarks(
+            image=image,
+            landmark_list=face_landmarks,
+            connections=mp_face_mesh.FACEMESH_IRISES,
+            landmark_drawing_spec=None,
+            connection_drawing_spec=mp_drawing_styles
+            .get_default_face_mesh_iris_connections_style()
+        )
 
 def read_image_from_url(url, mode=cv2.IMREAD_UNCHANGED):
     return cv2.imread(url, mode)
