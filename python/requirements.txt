@@ -4,5 +4,7 @@ opencv-python
 imutils
 fastapi
 uvicorn[standard]
+pydantic
+jinja2
 python-multipart
 mediapipe
