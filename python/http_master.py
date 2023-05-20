@@ -1,27 +1,16 @@
-import os
-from os.path import dirname, realpath, dirname, join
-from functools import lru_cache
 from typing import *
-from pathlib import Path
+from datetime import datetime
+from functools import lru_cache
 
 from fastapi import FastAPI, UploadFile, Request, Depends
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-import aiofiles
+from .file_util import save_to_disk
 
-from datetime import datetime
 from .config import Settings
-
-from pathlib import Path
-
-python_dir = dirname(realpath(__file__)) # python folder
-project_root_path = dirname(python_dir) # project root
-static_path = join(python_dir, 'static')
-favicon_path = join(python_dir, 'favicon.ico')
-templates_path = join(python_dir, 'templates')
-print(static_path)
+from .config import python_dir, project_root_path, static_path, favicon_path, templates_path
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=static_path), name="static")
@@ -29,13 +18,7 @@ templates = Jinja2Templates(templates_path)
 
 @lru_cache()
 def get_settings():
-    s = Settings()
-    if not os.path.isabs(s.ORIGINAL_VID_DIR):
-        s.ORIGINAL_VID_DIR = Path(s.ORIGINAL_VID_DIR).resolve()
-    if not os.path.isabs(s.PROCESSED_VID_DIR):
-        s.PROCESSED_VID_DIR = Path(s.PROCESSED_VID_DIR).resolve()
-
-    return s
+    return Settings()
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -63,9 +46,9 @@ def dashboard():
 async def upload_file(file: UploadFile, settings: Annotated[Settings, Depends(get_settings)]):
     """
     """
-    async with aiofiles.open(os.path.join(settings.ORIGINAL_VID_DIR, file.filename), 'wb') as out_file:
-        while content := await file.read(settings.WRITE_CHUNK_SIZE):  # async read chunk
-            await out_file.write(content)  # async write chunk
+    await save_to_disk(
+        file, settings.ORIGINAL_VID_DIR, file.filename, settings.WRITE_CHUNK_SIZE
+    )
 
     job_id = '' # to be generated
     start_time = datetime.now()
