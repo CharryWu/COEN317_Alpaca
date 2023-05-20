@@ -1,0 +1,1 @@
+export $(xargs < .env) && uvicorn python.http_master:app --reload
