@@ -14,7 +14,7 @@ class CircularQueue:
         self.size = 0
 
     def enqueue(self, item):
-        if self.size == self.capacity:
+        if self.isFull():
             print("Error: Queue is Full")
             return False
         else:
@@ -24,15 +24,20 @@ class CircularQueue:
             return True
 
     def dequeue(self):
-        item = None
-        if self.size == 0:
+        if self.isEmpty():
             print("Error: Queue is Empty")
             return
         else:
             item = self.queue[self.head]
             self.head = (self.head + 1) % self.capacity
-        self.size -= 1
-        return item
+            self.size -= 1
+            return item
+
+    def isFull(self):
+        return self.size == self.capacity
+
+    def isEmpty(self):
+        return self.size == 0
 
     def __str__(self):
         ll = list(map(job2str, self.queue))
