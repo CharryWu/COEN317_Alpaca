@@ -1,12 +1,15 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, DateTime
 from sqlalchemy.orm import relationship
 
-from python.db_util import Base
+from .database import Base 
+# from .schemas import UserSchema
+
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+
     
 
 class File(Base):
@@ -16,7 +19,7 @@ class File(Base):
     url = Column(String, unique=True, index=True) # url to file, could be linux file schema, or http schema
     hash = Column(String, unique=True) # md5 hash of file, used for checking duplication
     is_active = Column(Boolean, default=True) # if inactive, file is not accessible/visible
-    extra_info = Column(String, default='')
+    
 
 
 class Job(Base):
@@ -41,7 +44,7 @@ class Job(Base):
     created_time = Column(DateTime) # Time when this job gets created
     process_start_time = Column(DateTime) # Time when a worker machine starts processing this job
     process_end_time = Column(DateTime) # Time when a worker machine fully processed this job
-    extra_info = Column(String, default='') # Extra infomation in JSON format
+    
 
 class QueueJob(Base):
     """
@@ -64,7 +67,7 @@ class Worker(Base):
     __tablename__ = "workers"
 
     id = Column(Integer, primary_key=True, index=True) # Self-incrementing worker machine
-    statuc = Column() # Idle=0, Running=1, Fail=2
+    status = Column() # Idle=0, Running=1, Fail=2
     worker_ip = Column(String)
     masters_ip = Column(String)
     cur_job_id = relationship("Job", back_populates="queuejobs")
@@ -73,5 +76,5 @@ class Worker(Base):
     # Message content of last heartbeat, in string JSON format.
     # Worker machine can use the heartbeat message to report any anomalies in machine conditions or job status. Useful for debug & analytics report
     heartbeat_msg = Column(String)
-    extra_info = Column(String, default='') # Extra infomation in JSON format
+   
 
