@@ -10,3 +10,4 @@ python-multipart
 mediapipe
 aiofiles
 sqlalchemy
+psycopg2
