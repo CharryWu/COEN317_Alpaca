@@ -1,16 +1,21 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi import Request
 from sqlalchemy.orm import Session
 from . import crud_utils, models, schemas
+
 # from .models import User,File,Job,QueueJob,Worker
 from .database import SessionLocal, engine
 from .schemas import UserCreate, FileCreate, JobCreate, QueueJobCreate, WorkerCreate
 from db.schemas import User,File,Job,QueueJob,Worker
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.templating import Jinja2Templates
+from config import python_dir, project_root_path, static_path, favicon_path, templates_path
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="templates"), name="static")
+app.mount("/static", StaticFiles(directory=static_path), name="static")
+templates = Jinja2Templates(templates_path)
 
 def get_db() -> Session:
     db = SessionLocal()
@@ -18,18 +23,22 @@ def get_db() -> Session:
         yield db
     finally:
         db.close()
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(favicon_path)
 
-@app.get("/{filename}")
-def index(filename):
-    with open("templates/"+filename, "r") as file:
-        content = file.read()
-    return HTMLResponse(content=content)
+@app.get("/", response_class=HTMLResponse)
+@app.get("/index", response_class=HTMLResponse)
+@app.get("/home", response_class=HTMLResponse)
+async def home(request: Request):
+    """
+    Homepage: Users can upload a video on this page
+    Posts video as binary data to /uploadfile API
+    If all worker machines are busy, tell users their job is pending
+    """
+    return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/")
-def read_root():
-    with open("templates/index.html", "r") as file:
-        content = file.read()
-    return HTMLResponse(content=content)
+
 
 # Create operations
 @app.post("/users")
@@ -75,7 +84,7 @@ def create_worker(worker: Worker, db: Session = Depends(get_db)):
 # Read operations
 @app.get("/users/{user_id}")
 def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(models.User).filter(User.id == user_id).first()
     if user:
         return user
     else:
@@ -84,13 +93,13 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 @app.get("/files")
 def get_files(db: Session = Depends(get_db)):
-    files = db.query(File).all()
+    files = db.query(models.File).all()
     return files
 
 
-@app.get("/jobs/{job_id}")
+@app.get("/jobs")
 def get_job(job_id: int, db: Session = Depends(get_db)):
-    job = db.query(Job).filter(Job.id == job_id).first()
+    job = db.query(models.Job).filter(Job.id == job_id).first()
     if job:
         return job
     else:
@@ -99,20 +108,20 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
 
 @app.get("/queuejobs")
 def get_queue_jobs(db: Session = Depends(get_db)):
-    queue_jobs = db.query(QueueJob).all()
+    queue_jobs = db.query(models.QueueJob).all()
     return queue_jobs
 
 
 @app.get("/workers")
 def get_workers(db: Session = Depends(get_db)):
-    workers = db.query(Worker).all()
+    workers = db.query(models.Worker).all()
     return workers
 
 
 # Update operations
 @app.put("/users/{user_id}")
 def update_user(user_id: int, user: User, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.id == user_id).first()
+    existing_user = db.query(models.User).filter(User.id == user_id).first()
     if existing_user:
         existing_user.property = user.property  # Update the desired properties
         db.commit()
@@ -124,7 +133,7 @@ def update_user(user_id: int, user: User, db: Session = Depends(get_db)):
 
 @app.put("/files/{file_id}")
 def update_file(file_id: int, file: File, db: Session = Depends(get_db)):
-    existing_file = db.query(File).filter(File.id == file_id).first()
+    existing_file = db.query(models.File).filter(File.id == file_id).first()
     if existing_file:
         existing_file.property = file.property  # Update the desired properties
         db.commit()
@@ -136,7 +145,7 @@ def update_file(file_id: int, file: File, db: Session = Depends(get_db)):
 
 @app.put("/jobs/{job_id}")
 def update_job(job_id: int, job: Job, db: Session = Depends(get_db)):
-    existing_job = db.query(Job).filter(Job.id == job_id).first()
+    existing_job = db.query(models.Job).filter(Job.id == job_id).first()
     if existing_job:
         existing_job.property = job.property  # Update the desired properties
         db.commit()
@@ -148,7 +157,7 @@ def update_job(job_id: int, job: Job, db: Session = Depends(get_db)):
 
 @app.put("/queuejobs/{queue_job_id}")
 def update_queue_job(queue_job_id: int, queue_job: QueueJob, db: Session = Depends(get_db)):
-    existing_queue_job = db.query(QueueJob).filter(QueueJob.job_id == queue_job_id).first()
+    existing_queue_job = db.query(models.QueueJob).filter(QueueJob.job_id == queue_job_id).first()
     if existing_queue_job:
         existing_queue_job.property = queue_job.property  # Update the desired properties
         db.commit()
@@ -160,7 +169,7 @@ def update_queue_job(queue_job_id: int, queue_job: QueueJob, db: Session = Depen
 
 @app.put("/workers/{worker_id}")
 def update_worker(worker_id: int, worker: Worker, db: Session = Depends(get_db)):
-    existing_worker = db.query(Worker).filter(Worker.id == worker_id).first()
+    existing_worker = db.query(models.Worker).filter(Worker.id == worker_id).first()
     if existing_worker:
         existing_worker.property = worker.property  # Update the desired properties
         db.commit()
@@ -173,7 +182,7 @@ def update_worker(worker_id: int, worker: Worker, db: Session = Depends(get_db))
 # Delete operations
 @app.delete("/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(models.User).filter(User.id == user_id).first()
     if user:
         db.delete(user)
         db.commit()
@@ -184,7 +193,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/files/{file_id}")
 def delete_file(file_id: int, db: Session = Depends(get_db)):
-    file = db.query(File).filter(File.id == file_id).first()
+    file = db.query(models.File).filter(File.id == file_id).first()
     if file:
         db.delete(file)
         db.commit()
@@ -195,7 +204,7 @@ def delete_file(file_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/jobs/{job_id}")
 def delete_job(job_id: int, db: Session = Depends(get_db)):
-    job = db.query(Job).filter(Job.id == job_id).first()
+    job = db.query(models.Job).filter(Job.id == job_id).first()
     if job:
         db.delete(job)
         db.commit()
@@ -206,7 +215,7 @@ def delete_job(job_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/queuejobs/{queue_job_id}")
 def delete_queue_job(queue_job_id: int, db: Session = Depends(get_db)):
-    queue_job = db.query(QueueJob).filter(QueueJob.job_id == queue_job_id).first()
+    queue_job = db.query(models.QueueJob).filter(QueueJob.job_id == queue_job_id).first()
     if queue_job:
         db.delete(queue_job)
         db.commit()
@@ -217,7 +226,7 @@ def delete_queue_job(queue_job_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/workers/{worker_id}")
 def delete_worker(worker_id: int, db: Session = Depends(get_db)):
-    worker = db.query(Worker).filter(Worker.id == worker_id).first()
+    worker = db.query(models.Worker).filter(Worker.id == worker_id).first()
     if worker:
         db.delete(worker)
         db.commit()
@@ -228,4 +237,4 @@ def delete_worker(worker_id: int, db: Session = Depends(get_db)):
 
 
 
-# models.Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
