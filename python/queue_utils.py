@@ -12,6 +12,11 @@ class CircularQueue:
         self.tail = -1
         self.head = 0
         self.size = 0
+    
+    def get_front(self):
+        if self.isEmpty():
+            return None
+        return self.queue[self.head]
 
     def enqueue(self, item):
         if self.isFull():

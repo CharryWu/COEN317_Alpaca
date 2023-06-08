@@ -45,6 +45,26 @@ def get_total_frames(video_url: str) -> int:
             return int(float(probe['format']['duration']) * frame_rate)
     return -1
 
+def get_duration(video_url):
+    """
+    Get duration of video
+    https://stackoverflow.com/a/31025482
+    """
+    result = subprocess.run([
+            'ffprobe',
+            '-v',
+            'error',
+            '-show_entries',
+            'format=duration',
+            '-of',
+            'default=noprint_wrappers=1:nokey=1',
+            video_url
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+    return float(result.stdout)
+
 def video2images(video_url: str, output_dir: str = './', frame_filename_schema: str = '%04d.png'):
     output_url = file_util.get_path(output_dir, frame_filename_schema)
     log(f'{video_url} => {output_url}', bcolors.OKCYAN)

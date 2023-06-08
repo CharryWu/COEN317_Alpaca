@@ -4,15 +4,17 @@ from pathlib import Path
 
 import hashlib
 import aiofiles
-from .log_util import log, bcolors
+from log_util import log, bcolors
 from fastapi import UploadFile
 
 async def save_to_disk(file: UploadFile, dir: str, filename: str, chunksize: int = 8192):
     if not exists(dir):
         Path(dir).mkdir(parents=True)
+    write_url = get_path(dir, filename)
     async with aiofiles.open(get_path(dir, filename), 'wb') as out_file:
         while content := await file.read(chunksize):  # async read chunk
             await out_file.write(content)  # async write chunk
+        return write_url
 
 def calculate_md5(file: UploadFile, chunksize: int = 8192):
     file_hash = hashlib.md5()

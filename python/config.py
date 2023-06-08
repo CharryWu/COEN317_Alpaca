@@ -11,7 +11,12 @@ templates_path = join(python_dir, 'templates')
 class Settings(BaseSettings):
     ORIGINAL_VID_DIR: str
     PROCESSED_VID_DIR: str
+    DEFAULT_QUEUE_CAPACITY = 1024
     WRITE_CHUNK_SIZE:int = 8192
+
+    DEFAULT_MASTER_PORT = 8000
+    DEFAULT_WORKER_PORT = 8000
+
     class Config:
         env_file = join(project_root_path, ".env")
 
