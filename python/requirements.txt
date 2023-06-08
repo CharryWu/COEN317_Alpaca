@@ -12,3 +12,4 @@ mediapipe
 aiofiles
 sqlalchemy
 psycopg2
+fastapi-utils

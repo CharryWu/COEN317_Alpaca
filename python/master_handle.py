@@ -1,3 +1,4 @@
+from typing import *
 from datetime import datetime
 from functools import lru_cache
 import requests
@@ -7,10 +8,10 @@ from log_util import log, bcolors
 from video_util import get_frame_rate, get_total_frames, get_duration
 from config import Settings
 
-files = []
-jobs = []
-workers = []
-queue = None
+files: List[File] = []
+jobs: List[Job] = []
+workers: List[Worker] = []
+queue: CircularQueue = None
 
 @lru_cache()
 def get_settings():
@@ -20,15 +21,25 @@ def init_queue(capacity):
     global queue
     queue = CircularQueue(capacity)
 
-def add_file(file: File):
-    found = False
+def is_file_exist(file: File):
     for f in files:
         if f.url == file.url:
-            found = True
-    if not found:
-        files.append(file)
-    else:
-        log(f'File {file.url} already exists', bcolors.WARNING)
+            return True
+    return False
+
+def add_file(file: File) -> File:
+    files.append(file)
+    return file
+
+def add_worker(ip: str, port: int) -> Worker:
+    new_worker = Worker(
+        worker_ip=ip,
+        worker_port=port,
+        master_ip=get_settings().THIS_MACHINE_IP,
+        master_port=get_settings().MASTER_PORT,
+    )
+    workers.append(new_worker)
+    return new_worker
 
 def remove_file(url: str):
     for i, f in enumerate(files):
@@ -39,26 +50,38 @@ def remove_file(url: str):
     else:
         log(f'File {url} already exists', bcolors.WARNING)
 
+def get_file_by_id(fid: str) -> File:
+    for f in files:
+        if f.id == fid:
+            return f
+    return None
+
 def get_file_url_by_id(fid: str) -> str:
     for f in files:
         if f.id == fid:
             return f.url
     return None
 
-def get_job_with_id(id: str) -> Job:
+def get_job_by_id(id: str) -> Job:
     for job in jobs:
         if job.id == id:
             return job
     return None
 
-def get_worker_with_id(id: str) -> Worker:
+def get_worker_by_id(id: str) -> Worker:
     for worker in workers:
         if worker.id == id:
             return worker
     return None
 
-def get_file_url_with_queuejob(qj: QueueJob) -> str:
-    j = get_job_with_id(qj.job_id)
+def get_worker_by_ip(ip: str) -> Worker:
+    for worker in workers:
+        if worker.worker_ip == ip:
+            return worker
+    return None
+
+def get_file_url_by_queuejob(qj: QueueJob) -> str:
+    j = get_job_by_id(qj.job_id)
     if j:
         return get_file_url_by_id(j.input_file_id)
     return None
@@ -82,7 +105,6 @@ def add_job(file: File) -> QueueJob:
             created_time=now,
         )
         qj = QueueJob(job_id=j.id, enqueue_time=now)
-        return qj
     except Exception as e:
         log(e, bcolors.WARNING)
 
@@ -97,18 +119,23 @@ def assign_job(worker: Worker) -> QueueJob:
     Assign a job to worker once the worker sends an "idle" heartbeat message
     """
     global queue
-    if not queue or queue.isEmpty():
+    if not queue:
+        init_queue(Settings().DEFAULT_QUEUE_CAPACITY)
+    log(f'queue.isEmpty={queue.isEmpty()}')
+    if queue.isEmpty():
         return None
     qj = None
     try:
         qj = queue.get_front()
-        j = get_job_with_id(qj.job_id)
+        j = get_job_by_id(qj.job_id)
+        log(f"Queue front id={qj.job_id}, file={j.input_file_id}")
         if not j:
             return None
         ## Transmit file to worker over network
         url = get_file_url_by_id(j.input_file_id)
         if not url:
             return None
+        log(f"Queue front url={url}")
         transmit_file(worker, url)
         queue.dequeue()
         j.worker_id = worker.id
@@ -122,7 +149,12 @@ def assign_job(worker: Worker) -> QueueJob:
 def transmit_file(worker: Worker, video_url: str) -> bool:
     try:
         with open(video_url) as vid:
-            requests.post(f"{worker.worker_ip}:{str(Settings.DEFAULT_WORKER_PORT)}/receive_file", files={'video': vid})
+            requests.post(
+                f"{worker.worker_ip}:{str(Settings.THIS_WORKER_MACHINE_PORT)}/receive_file",
+                files={
+                    'video': vid,
+                }
+            )
         return True
     except Exception as e:
         log(e, bcolors.WARNING)

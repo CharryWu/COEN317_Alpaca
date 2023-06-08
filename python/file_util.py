@@ -7,6 +7,12 @@ import aiofiles
 from log_util import log, bcolors
 from fastapi import UploadFile
 
+async def save_response_to_disk(content, dir: str, filename: str, chunksize: int = 8192):
+    if not exists(dir):
+        Path(dir).mkdir(parents=True)
+    write_url = get_path(dir, filename)
+    open('google.ico', 'wb').write(content)
+
 async def save_to_disk(file: UploadFile, dir: str, filename: str, chunksize: int = 8192):
     if not exists(dir):
         Path(dir).mkdir(parents=True)
@@ -27,6 +33,15 @@ def file_exists(file: UploadFile, dir: str):
 
 def get_path(root: str, relative_url: str):
     return join(abspath(root), relative_url.strip('/'))
+
+
+def remove_files_in_dir(dirpath: str):
+    log(f'Removing files in {abspath(dirpath)}', bcolors.WARNING)
+    counter = 0
+    for file in listdir(dirpath):
+        remove(get_path(dirpath, file))
+        counter += 1
+    log(f'{counter} files removed in total', bcolors.WARNING)
 
 def remove_files_by_suffix(url: str, type: str):
     log(f'{abspath(url)}, {type}', bcolors.WARNING)

@@ -27,10 +27,11 @@ class File():
     __tablename__ = "files"
     _serial_id = 0
 
-    def __init__(self, url="", hash="", is_active=True):
+    def __init__(self, url="", filename="", hash="", is_active=True):
         self.id = File._serial_id
         File._serial_id += 1
         self.url = url
+        self.filename = filename
         if hash:
             self.hash = hash
         elif url:
@@ -45,12 +46,13 @@ class Job():
     __tablename__ = "jobs"
     _serial_id = 0
 
-    def __init__(self, status=JobStatus.UNASSIGNED, input_file_id=None, output_file_id=None, frame_rate="25", num_frames=0,
+    def __init__(self, status=JobStatus.UNASSIGNED, file_name='', input_file_id=None, output_file_id=None, frame_rate="25", num_frames=0,
                  duration=0.0, user_id=None, worker_id=None, created_time=None, process_start_time=None,
                  process_end_time=None):
         self.id = Job._serial_id
         Job._serial_id += 1
         self.status = status
+        self.file_name = file_name
         self.input_file_id = input_file_id # Foreign key file id
         self.output_file_id = output_file_id # Foreign key file id
         self.frame_rate = frame_rate
